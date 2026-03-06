@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Debug Tool</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            border-radius: 4px;
+        }
+        .error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .role-admin {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .role-user {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .step {
+            background: #f8fafc;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 3px solid #10b981;
+        }
+        h3 { color: #1e293b; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 JWT Token Debugger</h1>
+        <p>Paste your JWT token to see what's inside:</p>
+        
+        <textarea id="tokenInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+        
+        <button onclick="decodeToken()">Decode Token</button>
+        <button onclick="getFromLocalStorage()" style="margin-left: 10px; background: #10b981;">Get from localStorage</button>
+        <button onclick="clearStorage()" style="margin-left: 10px; background: #ef4444;">Clear localStorage</button>
+        
+        <div id="result"></div>
+
+        <h3>Troubleshooting Steps:</h3>
+        <div class="step">
+            <strong>Step 1:</strong> Click "Get from localStorage" to check your current stored token
+        </div>
+        <div class="step">
+            <strong>Step 2:</strong> If role shows "user" instead of "admin", you need to logout and login again
+        </div>
+        <div class="step">
+            <strong>Step 3:</strong> Click "Clear localStorage" to remove old tokens
+        </div>
+        <div class="step">
+            <strong>Step 4:</strong> Go back to the app and login again with your admin credentials
+        </div>
+    </div>
+
+    <script>
+        function decodeToken() {
+            const token = document.getElementById('tokenInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="result error">❌ Please paste a token first</div>';
+                return;
+            }
+
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid JWT format');
+                }
+                
+                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const header = JSON.parse(atob(parts[0]));
+                
+                const role = payload.role || 'user';
+                const roleClass = role === 'admin' ? 'role-admin' : 'role-user';
+                
+                const exp = new Date(payload.exp * 1000);
+                const now = new Date();
+                const expired = exp < now;
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>✅ Token Decoded Successfully</h3>
+                        <p><strong>Role:</strong> <span class="${roleClass} role-badge">${role.toUpperCase()}</span></p>
+                        <p><strong>User ID:</strong> ${payload.user_id || 'N/A'}</p>
+                        <p><strong>Expires:</strong> ${exp.toLocaleString()} ${expired ? '⚠️ EXPIRED' : '✅ Valid'}</p>
+                        
+                        <h4>Full Payload:</h4>
+                        <pre>${JSON.stringify(payload, null, 2)}</pre>
+                        
+                        <h4>Header:</h4>
+                        <pre>${JSON.stringify(header, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function getFromLocalStorage() {
+            const token = localStorage.getItem('token');
+            const role = localStorage.getItem('userRole');
+            const userId = localStorage.getItem('userId');
+            
+            const resultDiv = document.getElementById('result');
+            
+            if (!token) {
+                resultDiv.innerHTML = '<div class="result error">❌ No token found in localStorage. You need to login first.</div>';
+                return;
+            }
+            
+            document.getElementById('tokenInput').value = token;
+            
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h3>📦 localStorage Contents:</h3>
+                    <p><strong>Token:</strong> ${token.substring(0, 50)}...</p>
+                    <p><strong>Stored Role:</strong> <span class="role-badge ${role === 'admin' ? 'role-admin' : 'role-user'}">${role || 'Not set'}</span></p>
+                    <p><strong>User ID:</strong> ${userId || 'Not set'}</p>
+                    <p style="margin-top: 15px;">👆 Click "Decode Token" to see the actual role in the JWT</p>
+                </div>
+            `;
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userId');
+            
+            document.getElementById('result').innerHTML = `
+                <div class="result">
+                    <h3>✅ localStorage Cleared!</h3>
+                    <p>All tokens and user data have been removed.</p>
+                    <p><strong>Next step:</strong> Go to the login page and sign in again.</p>
+                </div>
+            `;
+            document.getElementById('tokenInput').value = '';
+        }
+    </script>
+</body>
+</html>
