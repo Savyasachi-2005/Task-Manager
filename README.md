@@ -264,6 +264,99 @@ When logged in as an admin, the dashboard displays:
 
 ---
 
+## Deployment
+
+### Backend Deployment (Render)
+
+1. **Push your code to GitHub** (if not already done)
+
+2. **Create a new Web Service on Render:**
+   - Go to [render.com](https://render.com)
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Select the `bd` folder as root directory (or use `render.yaml`)
+
+3. **Configure Environment Variables in Render Dashboard:**
+   ```
+   DATABASE_URL=<your-supabase-connection-string>
+   SECRET_KEY=<generate-with: python -c "import secrets; print(secrets.token_hex(32))">
+   JWT_ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   FRONTEND_URL=<your-vercel-deployment-url>
+   ```
+
+4. **Build & Start Commands:**
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+5. **Deploy!** Render will automatically deploy your backend.
+
+6. **Copy the deployment URL** (e.g., `https://task-manager-api.onrender.com`)
+
+---
+
+### Frontend Deployment (Vercel)
+
+1. **Update `.env` for production:**
+   
+   Create `fd/.env.production`:
+   ```bash
+   VITE_API_URL=https://your-backend.onrender.com
+   ```
+
+2. **Deploy to Vercel:**
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Add New" → "Project"
+   - Import your GitHub repository
+   - Set **Root Directory** to `fd`
+   - Set **Framework Preset** to "Vite"
+
+3. **Configure Environment Variables in Vercel:**
+   ```
+   VITE_API_URL=https://your-backend.onrender.com
+   ```
+
+4. **Build Settings (auto-detected):**
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+
+5. **Deploy!** Vercel will build and deploy your frontend.
+
+6. **Copy the deployment URL** and add it to your Render backend's `FRONTEND_URL` environment variable.
+
+---
+
+### Post-Deployment Steps
+
+1. **Update Backend CORS:**
+   - Go to Render dashboard → Your service → Environment
+   - Set `FRONTEND_URL` to your Vercel URL (e.g., `https://your-app.vercel.app`)
+   - Redeploy the backend
+
+2. **Create Admin User:**
+   - Connect to your Supabase database
+   - Run the SQL from `generate_hash.py` output to create an admin user
+
+3. **Test the Deployment:**
+   - Visit your Vercel URL
+   - Register a new user
+   - Login and create some tasks
+   - Test admin features if you created an admin user
+
+---
+
+### Deployment Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `bd/render.yaml` | Render service configuration (optional) |
+| `bd/runtime.txt` | Python version (3.11.0) |
+| `fd/vercel.json` | Vercel configuration (SPA routing, security headers) |
+| `fd/.env.production` | Production environment variables |
+
+---
+
 ## Debug Tools
 
 ### JWT Debugger

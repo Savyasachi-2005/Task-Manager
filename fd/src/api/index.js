@@ -2,10 +2,21 @@ import axios from 'axios'
 
 /**
  * Axios instance pre-configured for the FastAPI backend.
- * The Vite dev proxy forwards /api/* to http://localhost:8000.
+ * 
+ * Development: Uses Vite proxy (/api/* → http://localhost:8000)
+ * Production: Uses VITE_API_URL environment variable
  */
+const getBaseURL = () => {
+  // In production, use the environment variable
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api/v1`
+  }
+  // In development, use the proxy
+  return '/api/v1'
+}
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: getBaseURL(),
   headers: { 'Content-Type': 'application/json' },
 })
 

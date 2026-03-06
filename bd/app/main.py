@@ -8,6 +8,7 @@ Responsibilities:
 - Trigger table creation at startup
 """
 import logging
+import os
 import time
 
 from fastapi import FastAPI, Request
@@ -50,13 +51,21 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # CORS – allow the Vite dev server and any production origin
 # ---------------------------------------------------------------------------
+# Build allowed origins list (dev + production)
+allowed_origins = [
+    "http://localhost:3076",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
+# Add production frontend URL if set
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    allowed_origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3076",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
